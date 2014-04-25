@@ -17,7 +17,6 @@ build/
 develop-eggs/
 dist/
 eggs/
-lib/
 lib64/
 parts/
 sdist/
@@ -101,7 +100,6 @@ local.properties
 .mtj.tmp/
 
 # Package Files #
-*.jar
 *.war
 *.ear
 
