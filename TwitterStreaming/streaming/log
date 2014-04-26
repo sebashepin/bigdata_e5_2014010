@@ -1,0 +1,8 @@
+Traceback (most recent call last):
+  File "streaming.py", line 14, in <module>
+    conn = Connection() 		
+  File "/home/bigdata10/streaming/pymongo/connection.py", line 236, in __init__
+    max_pool_size, document_class, tz_aware, _connect, **kwargs)
+  File "/home/bigdata10/streaming/pymongo/mongo_client.py", line 366, in __init__
+    raise ConnectionFailure(str(e))
+pymongo.errors.ConnectionFailure: [Errno 111] Connection refused
