@@ -56,7 +56,7 @@ public class NewsDocument extends BasicDBObject {
      */
     public NewsDocument(String feedName, String title, String feedLink,
             String description, Date pubDate) {
-        super();
+        super("id",(feedName+title).hashCode());
         this.feedName = feedName;
         this.title = title;
         this.itemLink = feedLink;
