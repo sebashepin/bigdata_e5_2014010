@@ -11,6 +11,7 @@ import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
 import com.mongodb.DBCollection;
 import com.mongodb.DBCursor;
+import com.mongodb.DBObject;
 import com.mongodb.Mongo;
 import com.mongodb.WriteConcern;
 
@@ -24,7 +25,6 @@ public class MongoAccess {
     private Mongo mongo;
     private DB db;
     
-    @SuppressWarnings("unused")
     private DBCollection colaTuits, colaNoticias;
     private DBCollection feeds;
     
@@ -35,6 +35,7 @@ public class MongoAccess {
             mongo = new Mongo();
             db =  mongo.getDB("grupo10_taller4");
             colaNoticias = db.getCollection("colaNoticias");
+            colaTuits = db.getCollection("colaTuits");
             feeds = db.getCollection("feeds");
             mongo.setWriteConcern(WriteConcern.SAFE); //Exception thrown in any error
             
@@ -48,14 +49,12 @@ public class MongoAccess {
     public Feed[] getFeeds()
     {
     	int amount = (int)feeds.count();
-    	System.out.println("Found "+amount+" feeds");
     	Feed[] result = new Feed[amount];
     	DBCursor cursor = feeds.find();
     	int i = 0;
     	try {
     	   while(cursor.hasNext()) {
     	       Feed newFeed = new Feed(cursor.next());
-    	       System.out.println("\t" + newFeed.toString());
     	       result[i] = newFeed;
     	       i++;
     	   }
@@ -63,6 +62,16 @@ public class MongoAccess {
     	   cursor.close();
     	}    	
     	return result;
+    }
+    
+    public DBCursor executeQuery(DBObject query)
+    {
+        return colaTuits.find(query);
+    }
+    
+    public DBCursor allTweetsInQueue()
+    {
+        return colaTuits.find();
     }
     
     public void setLastUpdated(Feed feed)

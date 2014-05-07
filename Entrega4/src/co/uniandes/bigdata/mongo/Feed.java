@@ -11,6 +11,10 @@ import com.mongodb.DBObject;
  * @author sebastian
  *
  */
+/**
+ * @author sebastian
+ *
+ */
 public class Feed{
 
     /**
@@ -24,37 +28,37 @@ public class Feed{
     private String rssUrl;
 
     /**
-     * The item link.
+     * The item's twitter username.
      */
     private String twitterUrl;
+    
+    /**
+     * The feed's twitter ID
+     */
+    private String twitterID;
 
     /**
      * The feed description.
      */
     private Date rssLastUpdated;
     
-    /**
-     * Builds a MongoDB object with basic RSS fields
-     * 
-     * @param feedName
-     * @param feedUrl
-     * @param title
-     * @param feedLink
-     * @param description
-     * @param pubDate
-     * @param imageUrl
-     */
-    public Feed(String feedName, String rssUrl, String twitterUrl, Date rssLastUpdated) {
+
+    public Feed(String feedName, String rssUrl, String twitterUrl, String twitterID, Date rssLastUpdated) {
         this.feedName = feedName;
         this.rssUrl = rssUrl;
         this.twitterUrl = twitterUrl;
+        this.twitterID = twitterID;
         this.rssLastUpdated = rssLastUpdated;
     }
 
+    /**
+     * @param feedObject
+     */
     public Feed(DBObject feedObject){
     	this.feedName = (String)feedObject.get("feedName");
         this.rssUrl = (String) feedObject.get("rssUrl");
         this.twitterUrl = (String) feedObject.get("twitterUrl");
+        this.twitterID = (String) feedObject.get("twitterID");
         this.rssLastUpdated = (Date) feedObject.get("rssLastUpdated");
     }
     
@@ -68,6 +72,10 @@ public class Feed{
 
 	public String getTwitterUrl() {
 		return twitterUrl;
+	}
+	
+	public String getTwitterID() {
+	    return twitterID;
 	}
 
 	public Date getRssLastUpdated() {
