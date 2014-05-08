@@ -25,7 +25,7 @@ public class MongoAccess {
     private Mongo mongo;
     private DB db;
     
-    private DBCollection colaTuits, colaNoticias;
+    private DBCollection colaTuits, colaNoticias, tuits;
     private DBCollection feeds;
     
     private MongoAccess()
@@ -34,11 +34,44 @@ public class MongoAccess {
             //Connection setup
             mongo = new Mongo();
             db =  mongo.getDB("grupo10_taller4");
-            colaNoticias = db.getCollection("colaNoticias");
+
+            //Cola de Tuits
             colaTuits = db.getCollection("colaTuits");
-            feeds = db.getCollection("feeds");
-            mongo.setWriteConcern(WriteConcern.SAFE); //Exception thrown in any error
+            BasicDBObject indiceIDTweets = new BasicDBObject();
+            indiceIDTweets.append("id_str", 1);
+            BasicDBObject opcionesIndice = new BasicDBObject();
+            opcionesIndice.append("unique", true);
+            opcionesIndice.append("dropDups", true);
+            colaTuits.ensureIndex(indiceIDTweets,opcionesIndice);
             
+            //Coleccion tweets principal
+            tuits = db.getCollection("tuits");
+            indiceIDTweets = new BasicDBObject();
+            indiceIDTweets.append("id_str", 1);
+            opcionesIndice = new BasicDBObject();
+            opcionesIndice.append("unique", true);
+            opcionesIndice.append("dropDups", true);
+            tuits.ensureIndex(indiceIDTweets,opcionesIndice);
+            
+            //Cola de noticias
+            colaNoticias = db.getCollection("colaNoticias");
+            indiceIDTweets = new BasicDBObject();
+            indiceIDTweets.append("id", 1);
+            opcionesIndice = new BasicDBObject();
+            opcionesIndice.append("unique", true);
+            opcionesIndice.append("dropDups", true);
+            colaNoticias.ensureIndex(indiceIDTweets,opcionesIndice);
+
+            //Cola de fuentes
+            feeds = db.getCollection("feeds");
+            indiceIDTweets = new BasicDBObject();
+            indiceIDTweets.append("feedName", 1);
+            opcionesIndice = new BasicDBObject();
+            opcionesIndice.append("unique", true);
+            opcionesIndice.append("dropDups", true);
+            feeds.ensureIndex(indiceIDTweets,opcionesIndice);
+            
+            mongo.setWriteConcern(WriteConcern.SAFE); //Exception thrown in any error            
         } catch (UnknownHostException e) {
             e.printStackTrace();
         }
@@ -62,6 +95,23 @@ public class MongoAccess {
     	   cursor.close();
     	}    	
     	return result;
+    }
+    
+    public boolean isTweetOnMain(DBObject tweet)
+    {
+        BasicDBObject query = new BasicDBObject();
+        query.append("_id", tweet.get("_id"));
+        return tuits.find(query).count()>0?true:false;
+    }
+    
+    public void insertTweetOnQueue(DBObject tweet)
+    {
+        colaTuits.insert(tweet);
+    }
+    
+    public void removeTweetFromQueue(DBObject tweet)
+    {
+        colaTuits.remove(tweet);
     }
     
     public DBCursor executeQuery(DBObject query)

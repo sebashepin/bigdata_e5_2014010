@@ -3,9 +3,7 @@
  */
 package co.uniandes.bigdata;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.util.Arrays;
 
 import org.apache.logging.log4j.LogManager;
@@ -14,9 +12,9 @@ import org.apache.logging.log4j.Logger;
 import co.uniandes.bigdata.mongo.Feed;
 import co.uniandes.bigdata.mongo.MongoAccess;
 
-import com.mongodb.BasicDBObject;
 import com.mongodb.DBCursor;
 import com.mongodb.DBObject;
+import com.mongodb.MongoException;
 
 /**
  * @author sebastian
@@ -26,88 +24,74 @@ public class RT_SandD {
     /**
      * Mongo access object
      */
-    private MongoAccess access;
-    
+    private MongoAccess   access;
+
     /**
      * Application logger
      */
     private static Logger logger = LogManager.getLogger("RT_S&D");
-    
+
     /**
      * Feed array
      */
-    private Feed[] feeds;
-    
+    private Feed[]        feeds;
+
     public RT_SandD() {
         logger.info("Application started, attempting mongo connection");
         access = MongoAccess.getInstance();
         logger.info("Mongo connection succesful, loading feeds");
-        feeds = access.getFeeds();
-        logger.info("{} feeds loaded\n!\t{}",feeds.length,Arrays.toString(feeds));
-        logger.info("Initiating retweet S&D...");   
     }
-    
-    public void start() throws IOException
-    {
-        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
-        String line = "";
-        DBObject query = new BasicDBObject();
-        while(true)
-        {
-            line = br.readLine();
-            if(line.equals("all"))
+
+    public void start() throws IOException {
+        feeds = access.getFeeds();
+        logger.info("{} feeds loaded\n!\t{}", feeds.length, Arrays.toString(feeds));
+        logger.info("Initiating retweet S&D...");
+        DBCursor cursor = access.allTweetsInQueue();
+        logger.info("Found {} tweets in queue",cursor.count());
+        
+        int retweetAmount = 0;
+        int newTweets = 0;
+        int orphanedTweets = 0;
+        while (cursor.hasNext()) {
+            
+            DBObject obj = cursor.next();
+            String userId = (String)((DBObject)obj.get("user")).get("id_str");
+            if(userIsFeed(userId))
             {
-                int i = 0;
-                int j = 0;
-                DBCursor cursor = access.allTweetsInQueue();
-                while(cursor.hasNext())
-                {
-                    i++;
-                    DBObject obj = cursor.next();
-                    if(obj.containsField("user")){
-                        j++;
-                        System.out.println(((DBObject)obj.get("user")).keySet());
-                    }
-                }
-                System.out.println(cursor+"\n\t"+i+"\t"+j);
-                query = new BasicDBObject();
                 continue;
             }
-            if(line.equals("quit"))
+            else if(obj.containsField("retweeted_status"))
             {
-                System.exit(0);
-            }
-            if(line.equals("exec"))
-            {
-                int i = 0;
-                int j = 0;
-                DBCursor cursor = access.executeQuery(query);
-                while(cursor.hasNext())
+                retweetAmount++;
+                DBObject retweet = (DBObject)obj.get("retweeted_status");
+                String retweetUserId = (String)((DBObject)retweet.get("user")).get("id_str");
+                if(userIsFeed(retweetUserId))
                 {
-                    i++;
-                    DBObject obj = cursor.next();
-                    if(obj.containsField("user")){
-                        j++;
-                        System.out.println(obj);
+                    try {
+                        access.insertTweetOnQueue(retweet);
+                        newTweets++;
+                    } catch (MongoException.DuplicateKey e) {
+                        //Expected behavior
                     }
                 }
-                System.out.println(cursor+"\n\t"+i+"\t"+j);
-                query = new BasicDBObject();
-                continue;
+                access.removeTweetFromQueue(obj);
             }
-            String[] data = line.split(":",2);
-            try{
-                long candidate = Long.parseLong(data[1].trim());
-                query.put(data[0].trim(), candidate);
-            }
-            catch(NumberFormatException e)
+            else
             {
-                if(data[1].startsWith("\"") && data[1].endsWith("\""))
-                    data[1] = data[1].substring(1, data[1].length()-1);
-                query.put(data[0].trim(), data[1].equals("null")?null:data[1].trim());                
+                orphanedTweets++;
+                access.removeTweetFromQueue(obj);
             }
-            System.out.println(query);
         }
+        logger.info("Found and removed {} retweets and {} orphaned tweets. Inserted {} new tweets",retweetAmount,orphanedTweets,newTweets);
+    }
+
+    private boolean userIsFeed(String twitterId)
+    {
+        for (int i = 0; i < feeds.length; i++) {
+            if(feeds[i].getTwitterID().equals(twitterId))
+                return true;
+        }
+        return false;
     }
     
     /**
@@ -115,7 +99,7 @@ public class RT_SandD {
      */
     public static void main(String[] args) {
         RT_SandD rtsandd = new RT_SandD();
-        
+
         try {
             rtsandd.start();
         } catch (IOException e) {
