@@ -37,12 +37,13 @@ public class RT_SandD {
     private Feed[]        feeds;
 
     public RT_SandD() {
-        logger.info("Application started, attempting mongo connection");
-        access = MongoAccess.getInstance();
-        logger.info("Mongo connection succesful, loading feeds");
     }
 
     public void start() throws IOException {
+        logger.info("==============================================================");
+        logger.info("Application started, attempting mongo connection");
+        access = MongoAccess.getInstance();
+        logger.info("Mongo connection succesful, loading feeds");
         feeds = access.getFeeds();
         logger.info("{} feeds loaded\n!\t{}", feeds.length, Arrays.toString(feeds));
         logger.info("Initiating retweet S&D...");
@@ -83,6 +84,7 @@ public class RT_SandD {
             }
         }
         logger.info("Found and removed {} retweets and {} orphaned tweets. Inserted {} new tweets",retweetAmount,orphanedTweets,newTweets);
+        access.closeAccess();
     }
 
     private boolean userIsFeed(String twitterId)

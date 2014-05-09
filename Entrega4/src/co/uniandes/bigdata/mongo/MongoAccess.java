@@ -140,6 +140,12 @@ public class MongoAccess {
         colaNoticias.insert(newsDocument);
     }
     
+    public void closeAccess()
+    {
+        mongo.close();
+        instance = null;
+    }
+    
     public final static MongoAccess getInstance()
     {
         if(instance==null)

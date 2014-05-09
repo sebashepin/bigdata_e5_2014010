@@ -6,6 +6,9 @@ import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import co.uniandes.bigdata.mongo.Feed;
 import co.uniandes.bigdata.mongo.MongoAccess;
 import co.uniandes.bigdata.mongo.NewsDocument;
@@ -25,20 +28,24 @@ public class RSSCollector {
     public static final int SLEEP_TIME = 3600 * 1000;
     private MongoAccess     mongoAccess;
     private Feed[]          feeds;
+    /**
+     * Application logger
+     */
+    private static Logger logger = LogManager.getLogger("RSSCollector");
 
     public RSSCollector() {
-        mongoAccess = MongoAccess.getInstance();
     }
 
     public void start() {
         try {
-            System.out.println("==============================================================");
-            System.out.println("Beggining feed scraping at " + Calendar.getInstance().getTime());
+            mongoAccess = MongoAccess.getInstance();
+            logger.info("==============================================================");
+            logger.info("Beggining feed scraping at " + Calendar.getInstance().getTime());
             this.feeds = mongoAccess.getFeeds();
-            System.out.println("Feeds loaded and ready");
+            logger.info("Feeds loaded and ready");
             int articleCounter = 0;
             for (int i = 0; i < feeds.length; i++) {
-                System.out.println("Processing:\t" + feeds[i]);
+                logger.info("Processing:\t" + feeds[i]);
                 URL feedUrl = new URL(feeds[i].getRssUrl());
                 String feedName = feeds[i].getFeedName();
                 Date lastUpdated = feeds[i].getRssLastUpdated();
@@ -51,13 +58,20 @@ public class RSSCollector {
                     if (lastUpdated == null || lastUpdated.compareTo(newsItem.getPublishedDate()) < 0) {
                         articleCounter++;
                         NewsDocument newsDocument = new NewsDocument(feedName, newsItem.getTitle(), newsItem.getLink(), newsItem.getDescription().getValue(), newsItem.getPublishedDate());
-                        mongoAccess.addNewsDocument(newsDocument);
+                        try {
+                            mongoAccess.addNewsDocument(newsDocument);
+                        } catch (Exception e) {
+                            logger.info(newsItem.getTitle());
+                        }
                     }
                 }
+                feedUrl = null;
                 mongoAccess.setLastUpdated(feeds[i]);
             }
-            System.out.println(articleCounter + " articles added across " + feeds.length + " feeds");
-            System.out.println("Feeds scraped succesfully at " + Calendar.getInstance().getTime());
+            mongoAccess.closeAccess();
+            System.gc();
+            logger.info(articleCounter + " articles added across " + feeds.length + " feeds");
+            logger.info("Feeds scraped succesfully at " + Calendar.getInstance().getTime());
         } catch (Exception ex) {
             ex.printStackTrace();
         }
@@ -68,7 +82,7 @@ public class RSSCollector {
         while (true) {
             collector.start();
             try {
-                System.out.println("Sleeping for " + SLEEP_TIME / (1000 * 60) + " minutes");
+                logger.info("Sleeping for " + SLEEP_TIME / (1000 * 60) + " minutes");
                 Thread.sleep(SLEEP_TIME);
             } catch (InterruptedException e) {
                 e.printStackTrace();
