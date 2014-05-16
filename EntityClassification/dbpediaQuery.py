@@ -8,6 +8,13 @@ def entityType(entity):
 	colTypeQueryCache = db.typeQueryCache
 	colDescribeQueryCache = db.describeQueryCache
 	
+	# Revisar si la consulta existe en el cache
+	typeCache = colTypeQueryCache.find({"term":entity})
+	if (typeCache.count() > 0):
+		print "Type cache hit for %s" % entity
+		for cacheResult in typeCache:
+			return cacheResult["mainType"]
+	
 	sparql = SPARQLWrapper("http://dbpedia.org/sparql")
 	sparql.setQuery("""
 	PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
@@ -46,7 +53,7 @@ def entityType(entity):
 	queryRes = [{"term":entity,"mainType":mainType,"results":results}]
 	colTypeQueryCache.insert(queryRes)
 	conn.disconnect()
-    return mainType
+	return mainType
 
 def entityProperties(entity):
 	# Conexion a Mongo
@@ -54,6 +61,14 @@ def entityProperties(entity):
 	db = conn.grupo10_taller4
 	colTypeQueryCache = db.typeQueryCache
 	colDescribeQueryCache = db.describeQueryCache
+	
+	# Revisar si la consulta existe en el cache
+	describeCache = colDescribeQueryCache.find({"term":entity})
+	if (describeCache.count() > 0):
+		print "Describe cache hit for %s" % entity
+		for cacheResult in describeCache:
+			return cacheResult["results"]
+			
 	sparql = SPARQLWrapper("http://dbpedia.org/sparql")
 	sparql.setQuery("""
 	PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
@@ -70,4 +85,5 @@ def entityProperties(entity):
 	conn.disconnect()
 	return results
 
-#entityType("Google")
+print entityType("Colombia")
+entityProperties("Colombia")
